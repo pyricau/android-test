@@ -45,7 +45,7 @@ public class InstrumentationResultPrinter extends InstrumentationRunListener {
 
   private static final String TAG = "InstrumentationResultPrinter";
 
-  @VisibleForTesting static final int MAX_TRACE_SIZE = 32 * 1024;
+  @VisibleForTesting static final int MAX_TRACE_SIZE = 64 * 1024;
 
   /**
    * This value, if stored with key {@link android.app.Instrumentation#REPORT_KEY_IDENTIFIER},
@@ -177,12 +177,15 @@ public class InstrumentationResultPrinter extends InstrumentationRunListener {
   private void reportFailure(Failure failure) {
     String trace = failure.getTrace();
     if (trace.length() > MAX_TRACE_SIZE) {
-      // Since AJUR needs to report failures back to AM via a binder IPC, we need to make sure that
-      // we don't exceed the Binder transaction limit - which is 1MB per process.
-      Log.w(
-          TAG,
-          String.format("Stack trace too long, trimmed to first %s characters.", MAX_TRACE_SIZE));
-      trace = trace.substring(0, MAX_TRACE_SIZE) + "\n";
+      trace = failure.getTrimmedTrace();
+      if (trace.length() > MAX_TRACE_SIZE) {
+        // Since AJUR needs to report failures back to AM via a binder IPC, we need to make sure that
+        // we don't exceed the Binder transaction limit - which is 1MB per process.
+        Log.w(
+            TAG,
+            String.format("Stack trace too long, trimmed to first %s characters.", MAX_TRACE_SIZE));
+        trace = trace.substring(0, MAX_TRACE_SIZE) + "\n";
+      }
     }
     testResult.putString(REPORT_KEY_STACK, trace);
     // pretty printing
